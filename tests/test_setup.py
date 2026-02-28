@@ -6,7 +6,7 @@ from core.setup import detect_tools, TOOL_CURSOR, TOOL_CLAUDE_CODE, TOOL_WINDSUR
 from core.setup import (
     mcp_config_cursor, mcp_config_windsurf,
     mcp_config_continue_yaml, mcp_config_opencode,
-    mcp_config_mcporter,
+    mcp_config_mcporter, TOOL_VSCODE_CONTINUE, TOOL_CODEX,
 )
 
 
@@ -38,8 +38,18 @@ def test_detect_tools_finds_multiple(tmp_path):
 
 def test_cursor_config_valid_json():
     cfg = mcp_config_cursor("/path/to/mcp_server.py", "/path/to/python")
-    assert cfg["mcpServers"]["coeus"]["command"] == "/path/to/python"
-    assert "/path/to/mcp_server.py" in cfg["mcpServers"]["coeus"]["args"]
+    server = cfg["mcpServers"]["coeus"]
+    assert server["command"] == "/path/to/python"
+    assert "/path/to/mcp_server.py" in server["args"]
+    assert server["env"] == {}
+
+
+def test_opencode_config_unique_schema():
+    cfg = mcp_config_opencode("/p/mcp.py", "/p/python")
+    server = cfg["mcp"]["servers"]["coeus"]
+    assert server["type"] == "stdio"
+    assert server["command"] == "/p/python"
+    assert "/p/mcp.py" in server["args"]
 
 
 def test_windsurf_config_same_schema_as_cursor():
