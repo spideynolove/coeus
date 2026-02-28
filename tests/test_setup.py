@@ -168,3 +168,48 @@ def test_collect_api_keys_one_key_present_no_prompt(monkeypatch):
     keys = collect_api_keys(interactive=True)
     assert keys["voyage"] == "va-test"
     assert keys["openrouter"] is None
+
+
+def test_register_windsurf_creates_file(tmp_path):
+    config_path = tmp_path / ".codeium" / "windsurf" / "mcp_config.json"
+    register_windsurf("/p/mcp.py", "/p/python", config_path)
+    assert config_path.exists()
+    data = json.loads(config_path.read_text())
+    assert "mcpServers" in data
+
+
+def test_register_windsurf_merges_existing(tmp_path):
+    config_path = tmp_path / ".codeium" / "windsurf" / "mcp_config.json"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text('{"mcpServers": {"other": {"command": "x"}}}')
+    register_windsurf("/p/mcp.py", "/p/python", config_path)
+    data = json.loads(config_path.read_text())
+    assert "other" in data["mcpServers"]
+    assert "coeus" in data["mcpServers"]
+
+
+def test_register_opencode_creates_file(tmp_path):
+    config_path = tmp_path / "config.json"
+    register_opencode("/p/mcp.py", "/p/python", config_path)
+    assert config_path.exists()
+    data = json.loads(config_path.read_text())
+    assert data["mcp"]["servers"]["coeus"]["type"] == "stdio"
+
+
+def test_register_opencode_merges_existing(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text('{"mcp": {"servers": {"other-tool": {"command": "x"}}}}')
+    register_opencode("/p/mcp.py", "/p/python", config_path)
+    data = json.loads(config_path.read_text())
+    assert "other-tool" in data["mcp"]["servers"]
+    assert "coeus" in data["mcp"]["servers"]
+
+
+def test_write_env_file_merges_with_existing(tmp_path):
+    env_path = tmp_path / ".env"
+    env_path.write_text("CUSTOM_VAR=keep-me\nVOYAGE_API_KEY=old\n")
+    write_env_file({"voyage": "new-key", "openrouter": None}, env_path)
+    content = env_path.read_text()
+    assert "CUSTOM_VAR=keep-me" in content
+    assert "VOYAGE_API_KEY=new-key" in content
+    assert "VOYAGE_API_KEY=old" not in content

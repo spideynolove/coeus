@@ -631,7 +631,7 @@ def cmd_setup(args: argparse.Namespace, config: Config) -> int:
         print(f"  ✓ Embedder OK ({cfg.embedding_model}, {embedder.dimension} dims)")
     except Exception as e:
         print(f"  ✗ Embedder failed: {e}")
-        print("    Check your API key in ~/.coeus/.env")
+        print(f"    Check your API key in {env_path}")
         return 1
 
     print("\nSetup complete!")

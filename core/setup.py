@@ -19,7 +19,6 @@ def _tool_markers():
         TOOL_VSCODE_CONTINUE: HOME / ".continue",
         TOOL_WINDSURF:        HOME / ".codeium" / "windsurf",
         TOOL_OPENCODE:        HOME / ".config" / "opencode",
-        TOOL_CODEX:           HOME / ".codex",
     }
 
 
@@ -134,7 +133,19 @@ def register_opencode(mcp_server_path: str, python_path: str,
                       config_path: Path = None) -> None:
     if config_path is None:
         config_path = HOME / ".config" / "opencode" / "config.json"
-    _merge_json(config_path, mcp_config_opencode(mcp_server_path, python_path))
+    cfg = mcp_config_opencode(mcp_server_path, python_path)
+    if config_path.exists():
+        try:
+            existing = json.loads(config_path.read_text())
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in {config_path}: {e}") from e
+        existing.setdefault("mcp", {}).setdefault("servers", {}).update(
+            cfg["mcp"]["servers"]
+        )
+        config_path.write_text(json.dumps(existing, indent=2))
+    else:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(cfg, indent=2))
 
 
 def register_mcporter(mcp_server_path: str, python_path: str,
@@ -231,16 +242,26 @@ def collect_api_keys(interactive: bool = True) -> Dict[str, Optional[str]]:
 
 
 def write_env_file(keys: Dict[str, Optional[str]], env_path: Path) -> None:
-    env_path.parent.mkdir(parents=True, exist_ok=True)
-    lines = []
-    if keys.get("voyage") is not None:
-        lines.append(f"VOYAGE_API_KEY={keys['voyage']}")
-    if keys.get("openrouter") is not None:
-        lines.append(f"OPENROUTER_API_KEY={keys['openrouter']}")
-        if keys.get("voyage") is None:
-            lines.append("COEUS_EMBED_MODEL=openai/text-embedding-3-small")
-    if lines:
-        env_path.write_text("\n".join(lines) + "\n")
+    existing_lines: list[str] = []
+    known_keys = {"VOYAGE_API_KEY", "OPENROUTER_API_KEY", "COEUS_EMBED_MODEL"}
+
+    if env_path.exists():
+        existing_lines = [
+            line for line in env_path.read_text().splitlines()
+            if line.strip() and not any(line.startswith(k + "=") for k in known_keys)
+        ]
+
+    new_lines = list(existing_lines)
+    if keys.get("voyage"):
+        new_lines.append(f"VOYAGE_API_KEY={keys['voyage']}")
+    if keys.get("openrouter"):
+        new_lines.append(f"OPENROUTER_API_KEY={keys['openrouter']}")
+        if not keys.get("voyage"):
+            new_lines.append("COEUS_EMBED_MODEL=openai/text-embedding-3-small")
+
+    if new_lines:
+        env_path.parent.mkdir(parents=True, exist_ok=True)
+        env_path.write_text("\n".join(new_lines) + "\n")
 
 
 def register_claude_code(mcp_server_path: str, python_path: str,
