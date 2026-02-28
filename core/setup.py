@@ -1,6 +1,7 @@
 import json
+import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 HOME = Path.home()
 
@@ -217,6 +218,28 @@ npx mcporter call coeus.coeus_decisions
 - Don\'t use coeus_search when coeus_query gives better assembled context
 - Don\'t re-ingest unchanged codebases (skip-if-unchanged is automatic)
 '''
+
+
+def collect_api_keys(interactive: bool = True) -> Dict[str, Optional[str]]:
+    voyage = os.getenv("VOYAGE_API_KEY")
+    openrouter = os.getenv("OPENROUTER_API_KEY")
+    if interactive and voyage is None and openrouter is None:
+        print("No API keys found in environment. At least one is required.")
+        voyage = input("VOYAGE_API_KEY (leave blank to skip): ").strip() or None
+        openrouter = input("OPENROUTER_API_KEY (leave blank to skip): ").strip() or None
+    return {"voyage": voyage, "openrouter": openrouter}
+
+
+def write_env_file(keys: Dict[str, Optional[str]], env_path: Path) -> None:
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    lines = []
+    if keys.get("voyage") is not None:
+        lines.append(f"VOYAGE_API_KEY={keys['voyage']}")
+    if keys.get("openrouter") is not None:
+        lines.append(f"OPENROUTER_API_KEY={keys['openrouter']}")
+        if keys.get("voyage") is None:
+            lines.append("COEUS_EMBED_MODEL=openai/text-embedding-3-small")
+    env_path.write_text("\n".join(lines) + "\n" if lines else "")
 
 
 def register_claude_code(mcp_server_path: str, python_path: str,

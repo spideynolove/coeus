@@ -14,6 +14,7 @@ from core.setup import (
     register_vscode_continue, register_opencode,
     register_claude_code,
 )
+from core.setup import collect_api_keys, write_env_file
 
 
 def test_detect_tools_finds_cursor(tmp_path):
@@ -120,3 +121,36 @@ def test_register_claude_code_creates_skill_file(tmp_path):
     content = skill_path.read_text()
     assert "coeus_query" in content
     assert "mcporter" in content
+
+
+def test_collect_api_keys_from_env(monkeypatch):
+    monkeypatch.setenv("VOYAGE_API_KEY", "va-test")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+    keys = collect_api_keys(interactive=False)
+    assert keys["voyage"] == "va-test"
+    assert keys["openrouter"] == "sk-or-test"
+
+
+def test_collect_api_keys_returns_none_when_missing(monkeypatch):
+    monkeypatch.delenv("VOYAGE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    keys = collect_api_keys(interactive=False)
+    assert keys["voyage"] is None
+    assert keys["openrouter"] is None
+
+
+def test_write_env_file_creates_file(tmp_path):
+    env_path = tmp_path / ".env"
+    write_env_file({"voyage": "va-123", "openrouter": None}, env_path)
+    content = env_path.read_text()
+    assert "VOYAGE_API_KEY=va-123" in content
+    assert "OPENROUTER_API_KEY" not in content
+
+
+def test_write_env_file_skips_none_values(tmp_path):
+    env_path = tmp_path / ".env"
+    write_env_file({"voyage": None, "openrouter": "sk-or-456"}, env_path)
+    content = env_path.read_text()
+    assert "VOYAGE_API_KEY" not in content
+    assert "OPENROUTER_API_KEY=sk-or-456" in content
+    assert "COEUS_EMBED_MODEL=openai/text-embedding-3-small" in content
