@@ -239,7 +239,8 @@ def write_env_file(keys: Dict[str, Optional[str]], env_path: Path) -> None:
         lines.append(f"OPENROUTER_API_KEY={keys['openrouter']}")
         if keys.get("voyage") is None:
             lines.append("COEUS_EMBED_MODEL=openai/text-embedding-3-small")
-    env_path.write_text("\n".join(lines) + "\n" if lines else "")
+    if lines:
+        env_path.write_text("\n".join(lines) + "\n")
 
 
 def register_claude_code(mcp_server_path: str, python_path: str,

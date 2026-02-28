@@ -154,3 +154,17 @@ def test_write_env_file_skips_none_values(tmp_path):
     assert "VOYAGE_API_KEY" not in content
     assert "OPENROUTER_API_KEY=sk-or-456" in content
     assert "COEUS_EMBED_MODEL=openai/text-embedding-3-small" in content
+
+
+def test_write_env_file_does_nothing_when_all_none(tmp_path):
+    env_path = tmp_path / ".env"
+    write_env_file({"voyage": None, "openrouter": None}, env_path)
+    assert not env_path.exists()
+
+
+def test_collect_api_keys_one_key_present_no_prompt(monkeypatch):
+    monkeypatch.setenv("VOYAGE_API_KEY", "va-test")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    keys = collect_api_keys(interactive=True)
+    assert keys["voyage"] == "va-test"
+    assert keys["openrouter"] is None
