@@ -67,3 +67,47 @@ def test_continue_config_is_dict_with_mcp_servers():
 def test_mcporter_config_format():
     cfg = mcp_config_mcporter("/p/mcp.py", "/p/python")
     assert cfg["servers"]["coeus"]["command"] == "/p/python"
+
+
+import yaml
+from core.setup import (
+    register_cursor, register_windsurf,
+    register_vscode_continue, register_opencode,
+    register_claude_code,
+)
+
+
+def test_register_cursor_creates_file(tmp_path):
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    register_cursor("/p/mcp.py", "/p/python", config_path)
+    assert config_path.exists()
+    data = json.loads(config_path.read_text())
+    assert "mcpServers" in data
+
+
+def test_register_cursor_merges_existing(tmp_path):
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text('{"mcpServers": {"other": {"command": "x"}}}')
+    register_cursor("/p/mcp.py", "/p/python", config_path)
+    data = json.loads(config_path.read_text())
+    assert "other" in data["mcpServers"]
+    assert "coeus" in data["mcpServers"]
+
+
+def test_register_vscode_continue_creates_yaml(tmp_path):
+    config_path = tmp_path / ".continue" / "config.yaml"
+    register_vscode_continue("/p/mcp.py", "/p/python", config_path)
+    assert config_path.exists()
+    data = yaml.safe_load(config_path.read_text())
+    assert "mcpServers" in data
+
+
+def test_register_claude_code_creates_skill_file(tmp_path):
+    skill_path = tmp_path / ".claude" / "skills" / "coeus" / "SKILL.md"
+    register_claude_code("/p/mcp.py", "/p/python", skill_path=skill_path,
+                         mcporter_path=tmp_path / "mcporter.json")
+    assert skill_path.exists()
+    content = skill_path.read_text()
+    assert "coeus_query" in content
+    assert "mcporter" in content
