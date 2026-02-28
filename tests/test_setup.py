@@ -1,12 +1,18 @@
 import pytest
 import json
+import yaml
 from pathlib import Path
 from unittest.mock import patch
 from core.setup import detect_tools, TOOL_CURSOR, TOOL_CLAUDE_CODE, TOOL_WINDSURF, TOOL_OPENCODE
 from core.setup import (
     mcp_config_cursor, mcp_config_windsurf,
     mcp_config_continue_yaml, mcp_config_opencode,
-    mcp_config_mcporter, TOOL_VSCODE_CONTINUE, TOOL_CODEX,
+    mcp_config_mcporter, TOOL_VSCODE_CONTINUE,
+)
+from core.setup import (
+    register_cursor, register_windsurf,
+    register_vscode_continue, register_opencode,
+    register_claude_code,
 )
 
 
@@ -69,14 +75,6 @@ def test_mcporter_config_format():
     assert cfg["servers"]["coeus"]["command"] == "/p/python"
 
 
-import yaml
-from core.setup import (
-    register_cursor, register_windsurf,
-    register_vscode_continue, register_opencode,
-    register_claude_code,
-)
-
-
 def test_register_cursor_creates_file(tmp_path):
     config_path = tmp_path / ".cursor" / "mcp.json"
     register_cursor("/p/mcp.py", "/p/python", config_path)
@@ -101,6 +99,17 @@ def test_register_vscode_continue_creates_yaml(tmp_path):
     assert config_path.exists()
     data = yaml.safe_load(config_path.read_text())
     assert "mcpServers" in data
+
+
+def test_register_vscode_continue_merges_existing(tmp_path):
+    config_path = tmp_path / ".continue" / "config.yaml"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text("models:\n  - name: gpt-4\nmcpServers:\n  other: {command: x}\n")
+    register_vscode_continue("/p/mcp.py", "/p/python", config_path)
+    data = yaml.safe_load(config_path.read_text())
+    assert "models" in data
+    assert "other" in data["mcpServers"]
+    assert "coeus" in data["mcpServers"]
 
 
 def test_register_claude_code_creates_skill_file(tmp_path):

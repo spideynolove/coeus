@@ -80,7 +80,10 @@ def mcp_config_mcporter(mcp_server_path: str, python_path: str) -> Dict[str, Any
 
 def _merge_json(path: Path, new_data: Dict[str, Any]) -> None:
     if path.exists():
-        existing = json.loads(path.read_text())
+        try:
+            existing = json.loads(path.read_text())
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in {path}: {e}") from e
         for key, val in new_data.items():
             if key in existing and isinstance(existing[key], dict):
                 existing[key].update(val)
