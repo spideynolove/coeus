@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import patch
-from core.setup import detect_tools, TOOL_CURSOR, TOOL_CLAUDE_CODE, TOOL_WINDSURF
+from core.setup import detect_tools, TOOL_CURSOR, TOOL_CLAUDE_CODE, TOOL_WINDSURF, TOOL_OPENCODE
 
 
 def test_detect_tools_finds_cursor(tmp_path):
@@ -25,3 +25,6 @@ def test_detect_tools_finds_multiple(tmp_path):
         found = detect_tools()
     assert TOOL_CURSOR in found
     assert TOOL_CLAUDE_CODE in found
+    assert len(found) == 2
+    assert TOOL_WINDSURF not in found
+    assert TOOL_OPENCODE not in found
