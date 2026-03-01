@@ -1,5 +1,4 @@
-import pytest
-from core.ast_chunker import chunk_by_ast, AstChunk
+from core.ast_chunker import chunk_by_ast
 
 
 def test_python_packs_small_functions_into_one_chunk():
@@ -70,3 +69,16 @@ def test_chunk_line_numbers_are_one_indexed():
     chunks = chunk_by_ast(source, '.py', chunk_size=1000)
     assert chunks[0].start_line == 1
     assert chunks[0].end_line == 2
+
+
+def test_packed_chunk_section_is_first_definition():
+    source = "def foo():\n    return 1\n\ndef bar():\n    return 2\n"
+    chunks = chunk_by_ast(source, '.py', chunk_size=1000)
+    assert len(chunks) == 1
+    assert chunks[0].section == 'foo'
+
+
+def test_python_decorated_function_section_name():
+    source = "@staticmethod\ndef compute():\n    return 1\n"
+    chunks = chunk_by_ast(source, '.py', chunk_size=1000)
+    assert chunks[0].section == 'compute'

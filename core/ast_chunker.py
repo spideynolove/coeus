@@ -1,6 +1,7 @@
 import importlib
 from dataclasses import dataclass
 from typing import Optional
+from tree_sitter import Parser
 
 
 @dataclass
@@ -68,14 +69,9 @@ def _node_name(node) -> Optional[str]:
     return None
 
 
-def chunk_by_ast(text: str, suffix: str, chunk_size: int) -> list:
+def chunk_by_ast(text: str, suffix: str, chunk_size: int) -> list[AstChunk]:
     lang = _get_language(suffix)
     if lang is None:
-        return []
-
-    try:
-        from tree_sitter import Parser
-    except ImportError:
         return []
 
     node_types = _TOP_LEVEL_TYPES.get(suffix, set())
@@ -95,9 +91,6 @@ def chunk_by_ast(text: str, suffix: str, chunk_size: int) -> list:
 
     chunks = []
     pack_lines = []
-    pack_start = segments[0][0]
-    pack_end = segments[0][0]
-    pack_section = segments[0][2]
 
     for start, end, name in segments:
         seg_lines = lines[start:end + 1]
