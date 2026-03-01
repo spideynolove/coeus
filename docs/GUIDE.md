@@ -92,6 +92,18 @@ coeus stats
 
 Shows document count, entity count, projects, and database size.
 
+## AST-Aware Chunking
+
+When tree-sitter is installed, Coeus chunks code files along function and class boundaries instead of arbitrary line counts. This ensures function bodies are never split across chunks, which significantly improves semantic search quality.
+
+Install language support:
+
+```bash
+uv pip install tree-sitter tree-sitter-python tree-sitter-go tree-sitter-javascript tree-sitter-typescript tree-sitter-rust
+```
+
+Supported: Python, Go, JavaScript, TypeScript, Rust. Other file types use line-count chunking automatically.
+
 ## Configuration Reference
 
 All settings in `~/.coeus/.env`:

@@ -93,6 +93,8 @@ The project requires Python 3.8+ and the following dependencies:
 
 Optional dependencies:
 - `zhipuai` (for GLM LLM provider)
+- `tree-sitter` (AST-aware code chunking, optional)
+- `tree-sitter-python`, `tree-sitter-go`, `tree-sitter-javascript`, `tree-sitter-typescript`, `tree-sitter-rust` (language grammars, optional)
 
 ### Running the CLI
 Ensure the virtual environment is activated (see Development Setup). Then:
@@ -123,7 +125,7 @@ The project uses `uv` for package management (per user's global CLAUDE.md). Set 
 source /home/hung/env/.venv/bin/activate
 
 # Install dependencies with uv
-uv pip install voyageai requests watchdog python-dotenv tenacity mcp pyyaml numpy pytest zhipuai
+uv pip install voyageai requests watchdog python-dotenv tenacity mcp pyyaml numpy pytest zhipuai tree-sitter tree-sitter-python tree-sitter-go tree-sitter-javascript tree-sitter-typescript tree-sitter-rust
 ```
 
 #### Fixing Import Paths
