@@ -16,7 +16,7 @@ Local semantic memory for AI agents. Indexes your codebase and serves context to
 Requires Python 3.10+. Install via uv:
 
 ```bash
-uv tool install git+https://github.com/YOUR_USERNAME/coeus
+uv tool install git+https://github.com/spideynolove/coeus
 ```
 
 Then run one-time setup:
@@ -98,7 +98,7 @@ All settings via environment variables or `~/.coeus/.env`:
 Install tree-sitter for function/class boundary chunking instead of line-count splitting:
 
 ```bash
-uv tool install --with "coeus[ast]" git+https://github.com/YOUR_USERNAME/coeus
+uv tool install --with "coeus[ast]" git+https://github.com/spideynolove/coeus
 ```
 
 Supported: Python, Go, JavaScript, TypeScript, Rust.
