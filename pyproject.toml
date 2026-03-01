@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coeus"
+version = "1.0.0"
+requires-python = ">=3.10"
+dependencies = [
+    "voyageai",
+    "requests",
+    "watchdog",
+    "python-dotenv",
+    "tenacity",
+    "mcp",
+    "pyyaml",
+    "numpy",
+]
+
+[project.optional-dependencies]
+ast = [
+    "tree-sitter>=0.25",
+    "tree-sitter-python",
+    "tree-sitter-go",
+    "tree-sitter-javascript",
+    "tree-sitter-typescript",
+    "tree-sitter-rust",
+]
+glm = ["zhipuai"]
+
+[project.scripts]
+coeus = "main:main"
+coeus-mcp = "mcp_server:main"
+
+[tool.setuptools.packages.find]
+include = ["core*", "storage*", "utils*", "watcher*"]
+
+[tool.setuptools]
+py-modules = ["main", "config", "embedders", "llms", "mcp_server", "__init__"]
