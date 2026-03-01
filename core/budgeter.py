@@ -3,13 +3,7 @@ from dataclasses import dataclass
 
 from core.oracle import QueryResult, Pointer
 from storage.interface import SearchResult
-
-PRICING = {
-    "claude-3.5-sonnet": 3.0,
-    "claude-3-opus": 15.0,
-    "gemini-3-flash": 0.10,
-    "default": 3.0
-}
+from core.pricing import LLM_PRICING, EMBED_PRICING
 
 
 @dataclass
@@ -46,7 +40,14 @@ class ContextBudgeter:
 
         for chunk in result.chunks:
             self.potential_tokens += len(chunk.document.content)
-            content = f"--- {chunk.document.source} (lines {chunk.document.start_line}-{chunk.document.end_line}) ---\n{chunk.document.content}"
+            from core.contextualizer import expand_chunk
+            expanded = expand_chunk(
+                chunk.document.source,
+                chunk.document.start_line,
+                chunk.document.end_line,
+            )
+            body = expanded if expanded else chunk.document.content
+            content = f"--- {chunk.document.source} (lines {chunk.document.start_line}-{chunk.document.end_line}) ---\n{body}"
             items.append(ContextItem(
                 content=content,
                 source=chunk.document.source,

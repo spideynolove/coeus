@@ -9,6 +9,7 @@ from enum import Enum
 from storage.interface import StorageInterface, SearchResult
 from embedders import Embedder
 from core.fastpath import FastPath
+from core.pricing import LLM_PRICING
 
 
 class QueryType(Enum):
@@ -51,13 +52,6 @@ class Oracle:
         self._lock = threading.Lock()
         self._warmup_fastpath()
 
-        self.pricing = {
-            "claude-3.5-sonnet": 3.0,
-            "claude-3-opus": 15.0,
-            "gemini-3-flash": 0.10,
-            "default": 3.0
-        }
-
     def _warmup_fastpath(self):
         from storage.interface import Document
         try:
@@ -97,7 +91,8 @@ class Oracle:
                         method="fastpath"
                     )
 
-            vector_query = self._expand_query(query) if hyde else query
+            use_hyde = hyde and query_type == QueryType.SEMANTIC
+            vector_query = self._expand_query(query) if use_hyde else query
             query_embedding = self.embedder.embed_query(vector_query)
 
             results = self.storage.search_hybrid(
@@ -154,8 +149,8 @@ class Oracle:
             potential_tokens = sum(len(c['document'].content) for c in sorted_candidates) // 4
             actual_tokens = sum(len(c.document.content) for c in chunks) // 4
 
-            model = os.getenv("COEUS_LLM_MODEL", "claude-3.5-sonnet")
-            price_per_million = self.pricing.get(model, self.pricing["default"])
+            model = os.getenv("COEUS_LLM_MODEL", "anthropic/claude-3.5-sonnet")
+            price_per_million = LLM_PRICING.get(model, LLM_PRICING["default"])
             usd_saved = ((potential_tokens - actual_tokens) / 1_000_000) * price_per_million
 
             if hasattr(self.storage, 'record_savings'):
@@ -202,7 +197,12 @@ class Oracle:
         return any(k in query.lower() for k in temporal_keywords)
 
     def _expand_query(self, query: str) -> str:
-        return query
+        try:
+            from core.hypothesizer import generate_hyde
+            hypo = generate_hyde(query)
+            return hypo if hypo else query
+        except Exception:
+            return query
 
     def _deduplicate(self, candidates: List[Dict]) -> List[Dict]:
         seen = set()
