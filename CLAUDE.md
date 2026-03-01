@@ -135,7 +135,7 @@ Current imports reference `src_new.*` modules which don't exist in the directory
 3. Install the package locally with `pip install -e .` (once `setup.py` is created)
 
 #### Testing
-No test suite exists yet. When adding tests, use `pytest` with the project's root as the Python path.
+Run tests with `pytest` from the project root.
 
 ## Database Schema
 
