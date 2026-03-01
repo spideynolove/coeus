@@ -82,3 +82,61 @@ def test_python_decorated_function_section_name():
     source = "@staticmethod\ndef compute():\n    return 1\n"
     chunks = chunk_by_ast(source, '.py', chunk_size=1000)
     assert chunks[0].section == 'compute'
+
+
+from pathlib import Path
+from unittest.mock import MagicMock
+from core.ingestor import Ingestor
+
+
+def _make_ingestor(chunk_size=1000):
+    storage = MagicMock()
+    storage.is_file_indexed.return_value = False
+    storage.insert_documents = MagicMock()
+    storage.insert_entities = MagicMock()
+    storage.mark_file_indexed = MagicMock()
+    storage.delete_documents_by_source = MagicMock()
+    embedder = MagicMock()
+    embedder.embed.return_value = [[0.1] * 8]
+    return Ingestor(storage, embedder, chunk_size=chunk_size)
+
+
+def test_ingestor_uses_ast_for_python_file(tmp_path):
+    py_file = tmp_path / "auth.py"
+    py_file.write_text(
+        "def login(user):\n    return True\n\n"
+        "def logout(user):\n    return True\n"
+    )
+    ingestor = _make_ingestor(chunk_size=1000)
+    stats = ingestor.ingest_file(py_file, "test")
+    assert stats['chunks'] == 1
+    call_args = ingestor.storage.insert_documents.call_args[0][0]
+    assert len(call_args) == 1
+    assert 'def login' in call_args[0].content
+    assert 'def logout' in call_args[0].content
+
+
+def test_ingestor_section_stored_in_metadata(tmp_path):
+    py_file = tmp_path / "service.py"
+    py_file.write_text("def process(data):\n    return data\n")
+    ingestor = _make_ingestor()
+    ingestor.ingest_file(py_file, "test")
+    docs = ingestor.storage.insert_documents.call_args[0][0]
+    assert docs[0].metadata == {"section": "process"}
+
+
+def test_ingestor_falls_back_for_markdown(tmp_path):
+    md_file = tmp_path / "README.md"
+    content = "# Title\n\n" + "word " * 300 + "\n"
+    md_file.write_text(content)
+    ingestor = _make_ingestor(chunk_size=200)
+    stats = ingestor.ingest_file(md_file, "test")
+    assert stats['chunks'] > 1
+
+
+def test_ingestor_falls_back_when_no_ast_nodes(tmp_path):
+    py_file = tmp_path / "constants.py"
+    py_file.write_text("X = 1\nY = 2\nZ = 3\n")
+    ingestor = _make_ingestor(chunk_size=5)
+    stats = ingestor.ingest_file(py_file, "test")
+    assert stats['chunks'] >= 1
