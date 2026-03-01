@@ -9,7 +9,7 @@ from core.extractor import Extractor, ExtractedData
 
 class Chunk:
     def __init__(self, content: str, start_line: int, end_line: int,
-                 section=None):
+                 section: Optional[str] = None):
         self.content = content
         self.start_line = start_line
         self.end_line = end_line

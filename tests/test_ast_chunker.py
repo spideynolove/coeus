@@ -1,4 +1,7 @@
 from core.ast_chunker import chunk_by_ast
+from pathlib import Path
+from unittest.mock import MagicMock
+from core.ingestor import Ingestor
 
 
 def test_python_packs_small_functions_into_one_chunk():
@@ -82,11 +85,6 @@ def test_python_decorated_function_section_name():
     source = "@staticmethod\ndef compute():\n    return 1\n"
     chunks = chunk_by_ast(source, '.py', chunk_size=1000)
     assert chunks[0].section == 'compute'
-
-
-from pathlib import Path
-from unittest.mock import MagicMock
-from core.ingestor import Ingestor
 
 
 def _make_ingestor(chunk_size=1000):
