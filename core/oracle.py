@@ -72,7 +72,6 @@ class Oracle:
         query: str,
         project: Optional[str] = None,
         limit: int = 10,
-        hyde: bool = True
     ) -> QueryResult:
         with self._lock:
             query_type = self._detect_query_type(query)
@@ -91,8 +90,7 @@ class Oracle:
                         method="fastpath"
                     )
 
-            use_hyde = hyde and query_type == QueryType.SEMANTIC
-            vector_query = self._expand_query(query) if use_hyde else query
+            vector_query = query
             query_embedding = self.embedder.embed_query(vector_query)
 
             results = self.storage.search_hybrid(
@@ -197,12 +195,7 @@ class Oracle:
         return any(k in query.lower() for k in temporal_keywords)
 
     def _expand_query(self, query: str) -> str:
-        try:
-            from core.hypothesizer import generate_hyde
-            hypo = generate_hyde(query)
-            return hypo if hypo else query
-        except Exception:
-            return query
+        return query
 
     def _deduplicate(self, candidates: List[Dict]) -> List[Dict]:
         seen = set()

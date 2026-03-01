@@ -207,6 +207,20 @@ npx mcporter call coeus.coeus_decisions project:my-project
 npx mcporter call coeus.coeus_stats
 ```
 
+## HyDE — Better Recall for Conceptual Questions
+
+For "how", "why", "explain", "what is", "architecture" queries, search quality improves when
+the query describes an answer rather than a question. Before calling coeus_query:
+
+1. Mentally draft: "What would the code/docs implementing this look like?" (2-3 sentences)
+2. Use that description as the query instead of the raw question
+
+Example:
+- User asks: "how does authentication work?"
+- Search with: `"JWT tokens validated in middleware AuthService handles login logout session storage"`
+
+This is free — you are the LLM. No extra API call needed.
+
 ## Workflow: Learning a New Codebase
 
 ```bash
