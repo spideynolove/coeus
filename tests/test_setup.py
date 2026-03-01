@@ -1,7 +1,5 @@
-import pytest
 import json
 import yaml
-from pathlib import Path
 from unittest.mock import patch
 from core.setup import detect_tools, TOOL_CURSOR, TOOL_CLAUDE_CODE, TOOL_WINDSURF, TOOL_OPENCODE
 from core.setup import (

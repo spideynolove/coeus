@@ -1,7 +1,5 @@
 import re
-import os
 import threading
-from datetime import datetime
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 from enum import Enum
@@ -9,7 +7,6 @@ from enum import Enum
 from storage.interface import StorageInterface, SearchResult
 from embedders import Embedder
 from core.fastpath import FastPath
-from core.pricing import LLM_PRICING
 
 
 class QueryType(Enum):
@@ -147,13 +144,6 @@ class Oracle:
             potential_tokens = sum(len(c['document'].content) for c in sorted_candidates) // 4
             actual_tokens = sum(len(c.document.content) for c in chunks) // 4
 
-            model = os.getenv("COEUS_LLM_MODEL", "anthropic/claude-3.5-sonnet")
-            price_per_million = LLM_PRICING.get(model, LLM_PRICING["default"])
-            usd_saved = ((potential_tokens - actual_tokens) / 1_000_000) * price_per_million
-
-            if hasattr(self.storage, 'record_savings'):
-                self.storage.record_savings(query, model, potential_tokens, actual_tokens, usd_saved)
-
             return QueryResult(
                 query=query,
                 query_type=query_type,
@@ -164,7 +154,6 @@ class Oracle:
                 savings={
                     "potential_tokens": potential_tokens,
                     "actual_tokens": actual_tokens,
-                    "usd_saved": round(usd_saved, 6)
                 }
             )
 

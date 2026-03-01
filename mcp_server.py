@@ -1,8 +1,6 @@
 import os
 import sys
 import builtins
-import contextlib
-import io
 from pathlib import Path
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
@@ -47,7 +45,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from config import get_config
 from core.oracle import Oracle
-from core.budgeter import ContextBudgeter
+from core.contextualizer import expand_chunk
 from storage.zvec_store import ZvecStore
 from embedders import create_embedder
 
@@ -119,7 +117,7 @@ def coeus_reinit_oracle() -> str:
 
 
 @mcp.tool()
-def coeus_query(query: str, mode: str = "auto", client_model: str = "claude-3.5-sonnet") -> str:
+def coeus_query(query: str, mode: str = "auto") -> str:
     try:
         if not _oracle_ready:
             remaining = 30
@@ -130,29 +128,24 @@ def coeus_query(query: str, mode: str = "auto", client_model: str = "claude-3.5-
 
         oracle = get_oracle()
 
-        limit = 30
-        budget = 4000
-
-        if mode == "light":
-            limit = 15
-            budget = 2000
-        elif mode == "extra":
-            limit = 60
-            budget = 8000
-        else:
-            limit = 30
-            budget = 4000
-
-        budgeter = ContextBudgeter(budget)
+        limits = {"light": 15, "extra": 60}
+        limit = limits.get(mode, 30)
 
         result = oracle.ask(query, None, limit)
 
         if not result.entities and not result.chunks:
             return f"No results found for query: {query}"
 
-        context = budgeter.assemble(result)
+        parts = []
+        for entity in result.entities:
+            parts.append(f"[{entity.type.upper()}] {entity.content}")
+        for chunk in result.chunks:
+            body = expand_chunk(chunk.document.source, chunk.document.start_line, chunk.document.end_line) or chunk.document.content
+            parts.append(f"--- {chunk.document.source} (lines {chunk.document.start_line}-{chunk.document.end_line}) ---\n{body}")
+        for pointer in result.pointers:
+            parts.append(f"📍 {pointer.file_path}:{pointer.line_start}-{pointer.line_end} ({pointer.section})")
 
-        return context
+        return "\n\n".join(parts)
 
     except Exception as e:
         return f"Error in coeus_query: {str(e)}"

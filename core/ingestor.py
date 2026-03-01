@@ -2,9 +2,9 @@ from pathlib import Path
 from typing import List, Iterator, Dict, Any, Optional
 import hashlib
 
-from storage.interface import StorageInterface, Document, Entity
+from storage.interface import StorageInterface, Document
 from embedders import Embedder
-from core.extractor import Extractor, ExtractedData
+from core.extractor import Extractor
 
 
 class Chunk:

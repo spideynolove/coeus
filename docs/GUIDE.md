@@ -115,10 +115,8 @@ OPENROUTER_API_KEY=sk-or-...
 
 # Models
 COEUS_EMBED_MODEL=voyage-3          # or openai/text-embedding-3-small
-COEUS_LLM_MODEL=anthropic/claude-3.5-sonnet
 
 # Storage
 COEUS_DATA=~/.coeus                 # where DB lives
 COEUS_CHUNK_SIZE=1000               # chars per chunk
-COEUS_BUDGET=4000                   # default token budget
 ```

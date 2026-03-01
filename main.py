@@ -33,7 +33,6 @@ def create_parser() -> argparse.ArgumentParser:
               OPENROUTER_API_KEY    API key for OpenRouter LLM access
               COEUS_DATA            Data directory (default: ~/.coeus)
               COEUS_EMBED_MODEL     Embedding model (voyage-3, openai/text-embedding-3-small)
-              COEUS_LLM_MODEL       LLM model for chat
         """)
     )
 
@@ -307,7 +306,7 @@ def cmd_ingest(args: argparse.Namespace, config: Config) -> int:
 
 def cmd_ask(args: argparse.Namespace, config: Config) -> int:
     from core.oracle import Oracle
-    from core.budgeter import ContextBudgeter
+    from core.contextualizer import expand_chunk
     from storage.zvec_store import ZvecStore
     from embedders import create_embedder
 
@@ -323,10 +322,6 @@ def cmd_ask(args: argparse.Namespace, config: Config) -> int:
 
         storage = ZvecStore(str(config.db_path), vector_dimension=embedder.dimension)
         oracle = Oracle(storage, embedder)
-
-        budgets = {"light": 2000, "auto": 4000, "extra": 8000}
-        budget = budgets.get(args.mode, 4000)
-        budgeter = ContextBudgeter(budget)
 
         print(f"Query: {args.query}")
         print(f"Project: {args.project or 'all'}")
@@ -346,8 +341,15 @@ def cmd_ask(args: argparse.Namespace, config: Config) -> int:
                 print(f"  📍 {ptr.file_path}:{ptr.line_start}-{ptr.line_end}")
                 print(f"     Section: {ptr.section}")
         else:
-            context = budgeter.assemble(result)
-            print(context)
+            parts = []
+            for entity in result.entities:
+                parts.append(f"[{entity.type.upper()}] {entity.content}")
+            for chunk in result.chunks:
+                body = expand_chunk(chunk.document.source, chunk.document.start_line, chunk.document.end_line) or chunk.document.content
+                parts.append(f"--- {chunk.document.source} (lines {chunk.document.start_line}-{chunk.document.end_line}) ---\n{body}")
+            for pointer in result.pointers:
+                parts.append(f"📍 {pointer.file_path}:{pointer.line_start}-{pointer.line_end} ({pointer.section})")
+            print("\n\n".join(parts))
 
         storage.close()
         return 0
@@ -485,7 +487,6 @@ OPENROUTER_API_KEY=your_openrouter_key_here
 
 # Optional settings
 # COEUS_EMBED_MODEL=voyage-3
-# COEUS_LLM_MODEL=anthropic/claude-3.5-sonnet
 # COEUS_CHUNK_SIZE=1000
 """
         config_path.write_text(example)
@@ -498,9 +499,7 @@ OPENROUTER_API_KEY=your_openrouter_key_here
     print(f"Data directory:    {config.data_dir}")
     print(f"Database:          {config.db_path}")
     print(f"Embedding model:   {config.embedding_model}")
-    print(f"LLM model:         {config.llm_model}")
     print(f"Chunk size:        {config.chunk_size}")
-    print(f"Context budget:    {config.context_budget}")
     print()
 
     valid, errors = config.is_valid()

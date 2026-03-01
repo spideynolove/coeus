@@ -12,11 +12,9 @@ class Config:
     voyage_api_key: Optional[str]
     embedding_model: str
     openrouter_api_key: Optional[str]
-    llm_model: str
     chunk_size: int = 1000
     chunk_overlap: int = 100
     default_limit: int = 10
-    context_budget: int = 4000
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -30,11 +28,9 @@ class Config:
             voyage_api_key=os.getenv("VOYAGE_API_KEY"),
             embedding_model=os.getenv("COEUS_EMBED_MODEL", "voyage-3"),
             openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
-            llm_model=os.getenv("COEUS_LLM_MODEL", "anthropic/claude-3.5-sonnet"),
             chunk_size=int(os.getenv("COEUS_CHUNK_SIZE", "1000")),
             chunk_overlap=int(os.getenv("COEUS_CHUNK_OVERLAP", "100")),
             default_limit=int(os.getenv("COEUS_LIMIT", "10")),
-            context_budget=int(os.getenv("COEUS_BUDGET", "4000")),
         )
 
     def is_valid(self) -> tuple[bool, list[str]]:

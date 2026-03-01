@@ -1,13 +1,12 @@
 import fcntl
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 def read_file_safe(
     file_path: Path,
     start_line: int = 1,
     end_line: Optional[int] = None,
-    timeout: int = 5
 ) -> Dict[str, Any]:
     try:
         with open(file_path, 'r', encoding='utf-8', errors='replace') as f:

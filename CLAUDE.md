@@ -58,9 +58,7 @@ Env vars or `~/.coeus/.env`:
 | `OPENROUTER_API_KEY` | — | OpenRouter embeddings fallback |
 | `COEUS_DATA` | `~/.coeus` | Data directory |
 | `COEUS_EMBED_MODEL` | `voyage-3` | Embedding model |
-| `COEUS_LLM_MODEL` | `anthropic/claude-3.5-sonnet` | Downstream model for savings calc |
 | `COEUS_CHUNK_SIZE` | `1000` | Chunk size in characters |
-| `COEUS_BUDGET` | `4000` | Default context budget in tokens |
 
 ## Development Setup
 

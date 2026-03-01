@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from storage.interface import Entity
 
 

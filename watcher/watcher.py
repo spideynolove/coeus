@@ -85,7 +85,7 @@ class Watcher:
         self.debounce = debounce
 
         self.handler = CoeusEventHandler(callback, debounce)
-        self.observer: Optional[Observer] = None
+        self.observer = None
 
     def start(self):
         self.observer = Observer()
