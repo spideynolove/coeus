@@ -599,16 +599,13 @@ def cmd_setup(args: argparse.Namespace, config: Config) -> int:
     for tool in tools:
         print(f"  ✓ {tool}")
 
-    mcp_path = str(Path(__file__).parent / "mcp_server.py")
-    python_path = sys.executable
-
     print("\nStep 3: Registering with tools...")
     registrations = {
-        TOOL_CLAUDE_CODE: lambda: register_claude_code(mcp_path, python_path),
-        TOOL_CURSOR: lambda: register_cursor(mcp_path, python_path),
-        TOOL_VSCODE_CONTINUE: lambda: register_vscode_continue(mcp_path, python_path),
-        TOOL_WINDSURF: lambda: register_windsurf(mcp_path, python_path),
-        TOOL_OPENCODE: lambda: register_opencode(mcp_path, python_path),
+        TOOL_CLAUDE_CODE: register_claude_code,
+        TOOL_CURSOR: register_cursor,
+        TOOL_VSCODE_CONTINUE: register_vscode_continue,
+        TOOL_WINDSURF: register_windsurf,
+        TOOL_OPENCODE: register_opencode,
     }
 
     for tool in tools:

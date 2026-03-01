@@ -36,4 +36,4 @@ coeus-mcp = "mcp_server:main"
 include = ["core*", "storage*", "utils*", "watcher*"]
 
 [tool.setuptools]
-py-modules = ["main", "config", "embedders", "llms", "mcp_server", "__init__"]
+py-modules = ["main", "config", "embedders", "mcp_server", "__init__"]

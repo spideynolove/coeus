@@ -44,41 +44,38 @@ def test_detect_tools_finds_multiple(tmp_path):
 
 
 def test_cursor_config_valid_json():
-    cfg = mcp_config_cursor("/path/to/mcp_server.py", "/path/to/python")
+    cfg = mcp_config_cursor()
     server = cfg["mcpServers"]["coeus"]
-    assert server["command"] == "/path/to/python"
-    assert "/path/to/mcp_server.py" in server["args"]
-    assert server["env"] == {}
+    assert server["command"] == "coeus-mcp"
+    assert server["args"] == []
 
 
 def test_opencode_config_unique_schema():
-    cfg = mcp_config_opencode("/p/mcp.py", "/p/python")
+    cfg = mcp_config_opencode()
     server = cfg["mcp"]["servers"]["coeus"]
     assert server["type"] == "stdio"
-    assert server["command"] == "/p/python"
-    assert "/p/mcp.py" in server["args"]
+    assert server["command"] == "coeus-mcp"
+    assert server["args"] == []
 
 
 def test_windsurf_config_same_schema_as_cursor():
-    cursor = mcp_config_cursor("/p/mcp.py", "/p/python")
-    windsurf = mcp_config_windsurf("/p/mcp.py", "/p/python")
-    assert cursor == windsurf
+    assert mcp_config_cursor() == mcp_config_windsurf()
 
 
 def test_continue_config_is_dict_with_mcp_servers():
-    cfg = mcp_config_continue_yaml("/p/mcp.py", "/p/python")
+    cfg = mcp_config_continue_yaml()
     assert "mcpServers" in cfg
     assert "coeus" in cfg["mcpServers"]
 
 
 def test_mcporter_config_format():
-    cfg = mcp_config_mcporter("/p/mcp.py", "/p/python")
-    assert cfg["servers"]["coeus"]["command"] == "/p/python"
+    cfg = mcp_config_mcporter()
+    assert cfg["servers"]["coeus"]["command"] == "coeus-mcp"
 
 
 def test_register_cursor_creates_file(tmp_path):
     config_path = tmp_path / ".cursor" / "mcp.json"
-    register_cursor("/p/mcp.py", "/p/python", config_path)
+    register_cursor(config_path)
     assert config_path.exists()
     data = json.loads(config_path.read_text())
     assert "mcpServers" in data
@@ -88,7 +85,7 @@ def test_register_cursor_merges_existing(tmp_path):
     config_path = tmp_path / ".cursor" / "mcp.json"
     config_path.parent.mkdir(parents=True)
     config_path.write_text('{"mcpServers": {"other": {"command": "x"}}}')
-    register_cursor("/p/mcp.py", "/p/python", config_path)
+    register_cursor(config_path)
     data = json.loads(config_path.read_text())
     assert "other" in data["mcpServers"]
     assert "coeus" in data["mcpServers"]
@@ -96,7 +93,7 @@ def test_register_cursor_merges_existing(tmp_path):
 
 def test_register_vscode_continue_creates_yaml(tmp_path):
     config_path = tmp_path / ".continue" / "config.yaml"
-    register_vscode_continue("/p/mcp.py", "/p/python", config_path)
+    register_vscode_continue(config_path)
     assert config_path.exists()
     data = yaml.safe_load(config_path.read_text())
     assert "mcpServers" in data
@@ -106,7 +103,7 @@ def test_register_vscode_continue_merges_existing(tmp_path):
     config_path = tmp_path / ".continue" / "config.yaml"
     config_path.parent.mkdir(parents=True)
     config_path.write_text("models:\n  - name: gpt-4\nmcpServers:\n  other: {command: x}\n")
-    register_vscode_continue("/p/mcp.py", "/p/python", config_path)
+    register_vscode_continue(config_path)
     data = yaml.safe_load(config_path.read_text())
     assert "models" in data
     assert "other" in data["mcpServers"]
@@ -115,7 +112,7 @@ def test_register_vscode_continue_merges_existing(tmp_path):
 
 def test_register_claude_code_creates_skill_file(tmp_path):
     skill_path = tmp_path / ".claude" / "skills" / "coeus" / "SKILL.md"
-    register_claude_code("/p/mcp.py", "/p/python", skill_path=skill_path,
+    register_claude_code(skill_path=skill_path,
                          mcporter_path=tmp_path / "mcporter.json")
     assert skill_path.exists()
     content = skill_path.read_text()
@@ -172,7 +169,7 @@ def test_collect_api_keys_one_key_present_no_prompt(monkeypatch):
 
 def test_register_windsurf_creates_file(tmp_path):
     config_path = tmp_path / ".codeium" / "windsurf" / "mcp_config.json"
-    register_windsurf("/p/mcp.py", "/p/python", config_path)
+    register_windsurf(config_path)
     assert config_path.exists()
     data = json.loads(config_path.read_text())
     assert "mcpServers" in data
@@ -182,7 +179,7 @@ def test_register_windsurf_merges_existing(tmp_path):
     config_path = tmp_path / ".codeium" / "windsurf" / "mcp_config.json"
     config_path.parent.mkdir(parents=True)
     config_path.write_text('{"mcpServers": {"other": {"command": "x"}}}')
-    register_windsurf("/p/mcp.py", "/p/python", config_path)
+    register_windsurf(config_path)
     data = json.loads(config_path.read_text())
     assert "other" in data["mcpServers"]
     assert "coeus" in data["mcpServers"]
@@ -190,7 +187,7 @@ def test_register_windsurf_merges_existing(tmp_path):
 
 def test_register_opencode_creates_file(tmp_path):
     config_path = tmp_path / "config.json"
-    register_opencode("/p/mcp.py", "/p/python", config_path)
+    register_opencode(config_path)
     assert config_path.exists()
     data = json.loads(config_path.read_text())
     assert data["mcp"]["servers"]["coeus"]["type"] == "stdio"
@@ -199,7 +196,7 @@ def test_register_opencode_creates_file(tmp_path):
 def test_register_opencode_merges_existing(tmp_path):
     config_path = tmp_path / "config.json"
     config_path.write_text('{"mcp": {"servers": {"other-tool": {"command": "x"}}}}')
-    register_opencode("/p/mcp.py", "/p/python", config_path)
+    register_opencode(config_path)
     data = json.loads(config_path.read_text())
     assert "other-tool" in data["mcp"]["servers"]
     assert "coeus" in data["mcp"]["servers"]

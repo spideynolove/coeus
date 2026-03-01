@@ -10,8 +10,6 @@ TOOL_CURSOR = "cursor"
 TOOL_VSCODE_CONTINUE = "vscode-continue"
 TOOL_WINDSURF = "windsurf"
 TOOL_OPENCODE = "opencode"
-TOOL_CODEX = "codex"
-
 def _tool_markers():
     return {
         TOOL_CLAUDE_CODE:     HOME / ".claude",
@@ -26,53 +24,52 @@ def detect_tools() -> List[str]:
     return [tool for tool, path in _tool_markers().items() if path.exists()]
 
 
-def mcp_config_cursor(mcp_server_path: str, python_path: str) -> Dict[str, Any]:
+def mcp_config_cursor() -> Dict[str, Any]:
     return {
         "mcpServers": {
             "coeus": {
-                "command": python_path,
-                "args": [mcp_server_path],
-                "env": {}
+                "command": "coeus-mcp",
+                "args": []
             }
         }
     }
 
 
-def mcp_config_windsurf(mcp_server_path: str, python_path: str) -> Dict[str, Any]:
-    return mcp_config_cursor(mcp_server_path, python_path)
+def mcp_config_windsurf() -> Dict[str, Any]:
+    return mcp_config_cursor()
 
 
-def mcp_config_continue_yaml(mcp_server_path: str, python_path: str) -> Dict[str, Any]:
+def mcp_config_continue_yaml() -> Dict[str, Any]:
     return {
         "mcpServers": {
             "coeus": {
-                "command": python_path,
-                "args": [mcp_server_path]
+                "command": "coeus-mcp",
+                "args": []
             }
         }
     }
 
 
-def mcp_config_opencode(mcp_server_path: str, python_path: str) -> Dict[str, Any]:
+def mcp_config_opencode() -> Dict[str, Any]:
     return {
         "mcp": {
             "servers": {
                 "coeus": {
                     "type": "stdio",
-                    "command": python_path,
-                    "args": [mcp_server_path]
+                    "command": "coeus-mcp",
+                    "args": []
                 }
             }
         }
     }
 
 
-def mcp_config_mcporter(mcp_server_path: str, python_path: str) -> Dict[str, Any]:
+def mcp_config_mcporter() -> Dict[str, Any]:
     return {
         "servers": {
             "coeus": {
-                "command": python_path,
-                "args": [mcp_server_path]
+                "command": "coeus-mcp",
+                "args": []
             }
         }
     }
@@ -95,22 +92,19 @@ def _merge_json(path: Path, new_data: Dict[str, Any]) -> None:
         path.write_text(json.dumps(new_data, indent=2))
 
 
-def register_cursor(mcp_server_path: str, python_path: str,
-                    config_path: Path = None) -> None:
+def register_cursor(config_path: Path = None) -> None:
     if config_path is None:
         config_path = HOME / ".cursor" / "mcp.json"
-    _merge_json(config_path, mcp_config_cursor(mcp_server_path, python_path))
+    _merge_json(config_path, mcp_config_cursor())
 
 
-def register_windsurf(mcp_server_path: str, python_path: str,
-                      config_path: Path = None) -> None:
+def register_windsurf(config_path: Path = None) -> None:
     if config_path is None:
         config_path = HOME / ".codeium" / "windsurf" / "mcp_config.json"
-    _merge_json(config_path, mcp_config_windsurf(mcp_server_path, python_path))
+    _merge_json(config_path, mcp_config_windsurf())
 
 
-def register_vscode_continue(mcp_server_path: str, python_path: str,
-                              config_path: Path = None) -> None:
+def register_vscode_continue(config_path: Path = None) -> None:
     try:
         import yaml
     except ImportError:
@@ -119,7 +113,7 @@ def register_vscode_continue(mcp_server_path: str, python_path: str,
     if config_path is None:
         config_path = HOME / ".continue" / "config.yaml"
 
-    cfg = mcp_config_continue_yaml(mcp_server_path, python_path)
+    cfg = mcp_config_continue_yaml()
     if config_path.exists():
         existing = yaml.safe_load(config_path.read_text()) or {}
         existing.setdefault("mcpServers", {}).update(cfg["mcpServers"])
@@ -129,11 +123,10 @@ def register_vscode_continue(mcp_server_path: str, python_path: str,
     config_path.write_text(yaml.dump(cfg, default_flow_style=False))
 
 
-def register_opencode(mcp_server_path: str, python_path: str,
-                      config_path: Path = None) -> None:
+def register_opencode(config_path: Path = None) -> None:
     if config_path is None:
         config_path = HOME / ".config" / "opencode" / "config.json"
-    cfg = mcp_config_opencode(mcp_server_path, python_path)
+    cfg = mcp_config_opencode()
     if config_path.exists():
         try:
             existing = json.loads(config_path.read_text())
@@ -148,11 +141,10 @@ def register_opencode(mcp_server_path: str, python_path: str,
         config_path.write_text(json.dumps(cfg, indent=2))
 
 
-def register_mcporter(mcp_server_path: str, python_path: str,
-                      config_path: Path = None) -> None:
+def register_mcporter(config_path: Path = None) -> None:
     if config_path is None:
         config_path = HOME / ".mcporter" / "mcporter.json"
-    _merge_json(config_path, mcp_config_mcporter(mcp_server_path, python_path))
+    _merge_json(config_path, mcp_config_mcporter())
 
 
 CLAUDE_CODE_SKILL_CONTENT = '''---
@@ -278,11 +270,10 @@ def write_env_file(keys: Dict[str, Optional[str]], env_path: Path) -> None:
         env_path.write_text("\n".join(new_lines) + "\n")
 
 
-def register_claude_code(mcp_server_path: str, python_path: str,
-                         skill_path: Path = None,
+def register_claude_code(skill_path: Path = None,
                          mcporter_path: Path = None) -> None:
     if skill_path is None:
         skill_path = HOME / ".claude" / "skills" / "coeus" / "SKILL.md"
     skill_path.parent.mkdir(parents=True, exist_ok=True)
     skill_path.write_text(CLAUDE_CODE_SKILL_CONTENT)
-    register_mcporter(mcp_server_path, python_path, mcporter_path)
+    register_mcporter(mcporter_path)

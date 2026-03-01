@@ -1,100 +1,118 @@
 # Coeus
 
-Local semantic memory system for AI agents. Reduces LLM API costs by 83-98% through pointer-based RAG with real zvec HNSW vector search.
+Local semantic memory for AI agents. Indexes your codebase and serves context to Claude Code, Cursor, and other tools via MCP — without dumping entire files into the context window.
 
-## Features
+**83–98% token reduction** through pointer-based RAG with hybrid vector + full-text search.
 
-- **zvec HNSW Search** - O(log n) vector search via Alibaba's zvec library
-- **Hybrid Search** - Vector + FTS5 for precise results
-- **Entity Extraction** - Problems, solutions, decisions, tasks
-- **Pointer-Based RAG** - Lightweight references instead of full documents
-- **MCP Integration** - Works with Claude Code, Cursor, Antigravity
-- **Job Queue** - Async background processing
-- **Shadow Accounting** - Track token/cost savings
+## How It Works
+
+1. You index a codebase once (`coeus ingest`)
+2. `coeus-mcp` runs as an MCP server in the background
+3. Your AI tool (Claude Code, Cursor, etc.) queries it via the `coeus` skill
+4. Coeus returns precise pointers and excerpts instead of raw files
 
 ## Install
 
-```bash
-pip install zvec voyageai watchdog python-dotenv mcp numpy
-```
-
-## Quick Start
+Requires Python 3.10+. Install via uv:
 
 ```bash
-export VOYAGE_API_KEY=your_key
-
-python main.py ingest ./my-project --recursive
-python main.py ask "How does authentication work?"
-python main.py stats
+uv tool install git+https://github.com/YOUR_USERNAME/coeus
 ```
 
-## MCP Configuration (Claude Code)
-
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "coeus": {
-      "command": "python",
-      "args": ["/path/to/coeus/mcp_server.py"],
-      "env": {
-        "VOYAGE_API_KEY": "your_key"
-      }
-    }
-  }
-}
-```
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VOYAGE_API_KEY` | Voyage AI API key | Required |
-| `OPENROUTER_API_KEY` | OpenRouter API key (fallback) | Optional |
-| `COEUS_DATA` | Data directory | `~/.coeus` |
-| `COEUS_EMBED_MODEL` | Embedding model | `voyage-3` |
-| `COEUS_LLM_MODEL` | LLM model | `anthropic/claude-3.5-sonnet` |
-| `COEUS_CHUNK_SIZE` | Chunk size | `1000` |
-| `COEUS_BUDGET` | Default token budget | `4000` |
-
-## CLI Commands
+Then run one-time setup:
 
 ```bash
-python main.py ingest <path>           Index files/directories
-python main.py ask <query>             Query knowledge base
-python main.py search <query>          Raw search (debug)
-python main.py stats                   Database statistics
-python main.py watch <path>            Monitor files for changes
-python main.py config                  Show configuration
-python main.py job list                List background jobs
-python main.py job status <job_id>      Check job status
+coeus setup
 ```
 
-## MCP Tools
+Setup will:
+- Ask for your API key(s) and save them to `~/.coeus/.env`
+- Detect installed tools (Claude Code, Cursor, Windsurf, etc.)
+- Register `coeus-mcp` with each detected tool automatically
 
-- `coeus_ping` - Health check
-- `coeus_query` - Main search with context assembly
-- `coeus_search` - Raw search results
-- `coeus_stats` - Database statistics
-- `coeus_ingest` - Index files
-- `coeus_decisions` - Get active decisions
-- `coeus_reinit_oracle` - Recover from Oracle lock
+## API Keys
+
+You need **at least one** of:
+
+| Key | Use | Get it |
+|-----|-----|--------|
+| `VOYAGE_API_KEY` | Embeddings (recommended) | [voyageai.com](https://dash.voyageai.com) |
+| `OPENROUTER_API_KEY` | Embeddings fallback + LLM | [openrouter.ai/keys](https://openrouter.ai/keys) |
+
+**Voyage AI** gives better embedding quality. First 200M tokens are free on `voyage-3`.
+**OpenRouter** works as a fallback using `openai/text-embedding-3-small` ($0.02/MTok).
+
+Both keys are optional if the other is set. `coeus setup` will prompt for whichever is missing.
+
+## Usage
+
+```bash
+# Index a project
+coeus ingest /path/to/project --recursive
+
+# Ask a question
+coeus ask "how does authentication work?"
+
+# Raw search (debugging)
+coeus search "JWT validation" --method hybrid
+
+# Check what's indexed
+coeus stats
+
+# Watch for file changes and auto-index
+coeus watch /path/to/project
+
+# Show current config
+coeus config
+```
+
+## MCP Tools (via Claude Code / Cursor)
+
+Once set up, your AI tool uses these automatically through the `coeus` skill:
+
+| Tool | Purpose |
+|------|---------|
+| `coeus_query` | Main search — returns assembled context within token budget |
+| `coeus_search` | Raw results with relevance scores |
+| `coeus_ingest` | Index a path from within the AI tool |
+| `coeus_decisions` | List active architectural decisions |
+| `coeus_stats` | Database statistics |
+| `coeus_ping` | Health check |
+
+## Configuration
+
+All settings via environment variables or `~/.coeus/.env`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VOYAGE_API_KEY` | — | Voyage AI embeddings |
+| `OPENROUTER_API_KEY` | — | OpenRouter fallback |
+| `COEUS_DATA` | `~/.coeus` | Data directory |
+| `COEUS_EMBED_MODEL` | `voyage-3` | Embedding model |
+| `COEUS_LLM_MODEL` | `anthropic/claude-3.5-sonnet` | Downstream model (for savings calc) |
+| `COEUS_CHUNK_SIZE` | `1000` | Chunk size in characters |
+| `COEUS_BUDGET` | `4000` | Default context budget in tokens |
+
+## AST-Aware Chunking (optional)
+
+Install tree-sitter for function/class boundary chunking instead of line-count splitting:
+
+```bash
+uv tool install --with "coeus[ast]" git+https://github.com/YOUR_USERNAME/coeus
+```
+
+Supported: Python, Go, JavaScript, TypeScript, Rust.
 
 ## Architecture
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│   Oracle    │───▶│  Context     │───▶│  Response   │
-│ (Search)    │    │  Budgeter    │    │  Assembly  │
-└─────────────┘    └──────────────┘    └─────────────┘
-       │                   │
-       ▼                   ▼
-┌─────────────┐    ┌──────────────┐
-│    zvec     │    │  SQLite FTS5 │
-│  (Vectors)  │    │  (Keywords)  │
-└─────────────┘    └──────────────┘
+coeus ingest  →  chunk (AST/line)  →  embed  →  SQLite + zvec HNSW
+coeus_query   →  FastPath cache  →  hybrid search  →  Contextualizer  →  Budgeter  →  pointers
 ```
+
+- **FastPath** — exact/prefix cache, skips embedding API call for short queries
+- **Contextualizer** — expands matched chunks with ±3 surrounding lines from source
+- **Budgeter** — assembles context within token budget, max 3 chunks per file
 
 ## License
 
