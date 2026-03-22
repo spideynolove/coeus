@@ -1,0 +1,5 @@
+{"query_id": "auth_1", "query": "how do I register a new user?", "relevant_chunk_ids": ["doc_1ecf481e_f49c2751b6e375df_chunk_0_0c8df10d"], "metadata": {"category": "auth", "difficulty": "easy"}}
+{"query_id": "auth_2", "query": "how do I authenticate a user?", "relevant_chunk_ids": ["doc_1ecf481e_f49c2751b6e375df_chunk_1_e5842eac"], "metadata": {"category": "auth", "difficulty": "easy"}}
+{"query_id": "auth_3", "query": "how do I change a user's password?", "relevant_chunk_ids": ["doc_1ecf481e_f49c2751b6e375df_chunk_2_5bb0c6bb"], "metadata": {"category": "auth", "difficulty": "medium"}}
+{"query_id": "calc_1", "query": "how do I add two numbers?", "relevant_chunk_ids": ["doc_3c236088_0236d978809990b6_chunk_0_e6d74915"], "metadata": {"category": "calculator", "difficulty": "easy"}}
+{"query_id": "calc_2", "query": "how do I calculate the average of numbers?", "relevant_chunk_ids": ["doc_3c236088_0236d978809990b6_chunk_1_1c30ba3d"], "metadata": {"category": "calculator", "difficulty": "medium"}}

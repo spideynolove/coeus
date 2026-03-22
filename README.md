@@ -1,116 +1,107 @@
 # Coeus
 
-Local semantic memory for AI agents. Indexes your codebase and serves context to Claude Code, Cursor, and other tools via MCP — without dumping entire files into the context window.
-
-**83–98% token reduction** through pointer-based RAG with hybrid vector + full-text search.
-
-## How It Works
-
-1. You index a codebase once (`coeus ingest`)
-2. `coeus-mcp` runs as an MCP server in the background
-3. Your AI tool (Claude Code, Cursor, etc.) queries it via the `coeus` skill
-4. Coeus returns precise pointers and excerpts instead of raw files
+Coeus is a retrieval research rewrite built around explicit experiment specs, deterministic corpus ingestion, baseline retrieval stages, and persisted evaluation artifacts.
 
 ## Install
 
-Requires Python 3.10+. Install via uv:
+Requires Python 3.10+.
 
 ```bash
 uv tool install git+https://github.com/spideynolove/coeus
 ```
 
-Then run one-time setup:
+## CLI
+
+The installable command surface is intentionally small:
 
 ```bash
-coeus setup
+coeus run path/to/spec.json
+coeus show-run <run_id>
+coeus list-runs
 ```
 
-Setup will:
-- Ask for your API key(s) and save them to `~/.coeus/.env`
-- Detect installed tools (Claude Code, Cursor, Windsurf, etc.)
-- Register `coeus-mcp` with each detected tool automatically
+`coeus run` loads an experiment spec, persists the resolved spec in the artifact store, executes the runner, and prints the saved run summary as JSON.
 
-## API Keys
+`coeus show-run` prints a persisted run summary from the artifact store.
 
-You need **at least one** of:
+`coeus list-runs` lists runs with optional `--spec-id` and `--status` filters.
 
-| Key | Use | Get it |
-|-----|-----|--------|
-| `VOYAGE_API_KEY` | Embeddings (recommended) | [voyageai.com](https://dash.voyageai.com) |
-| `OPENROUTER_API_KEY` | Embeddings fallback + LLM | [openrouter.ai/keys](https://openrouter.ai/keys) |
+## Spec Shape
 
-**Voyage AI** gives better embedding quality. First 200M tokens are free on `voyage-3`.
-**OpenRouter** works as a fallback using `openai/text-embedding-3-small` ($0.02/MTok).
+An experiment spec is JSON with:
 
-Both keys are optional if the other is set. `coeus setup` will prompt for whichever is missing.
+- `corpus`
+- `stages`
+- optional `eval_set`
+- optional `metadata`
 
-## Usage
+Corpus and evaluation paths may be absolute or relative to the spec file.
+
+Example:
+
+```json
+{
+  "corpus": {
+    "type": "local_directory",
+    "path": "../fixtures/corpus",
+    "extensions": [".py"]
+  },
+  "stages": [
+    {
+      "name": "candidate_gen",
+      "type": "lexical",
+      "params": {"limit": 10}
+    },
+    {
+      "name": "assembly",
+      "type": "simple",
+      "params": {"max_chunks": 5}
+    }
+  ],
+  "eval_set": {
+    "path": "../fixtures/evaluation/eval.jsonl",
+    "format": "jsonl"
+  }
+}
+```
+
+## Artifact Store
+
+Runs are stored in a local filesystem artifact root with:
+
+- persisted specs under `specs/`
+- run metadata and summaries under `runs/<run_id>/`
+- per-run documents, chunks, retrieval outputs, and evaluation outputs
+
+## MCP
+
+`coeus-mcp` exposes the same rewrite core through three thin tools:
+
+- `run_experiment`
+- `get_run_summary`
+- `get_runs`
+
+The MCP adapter calls the same runner and artifact-store code path as the CLI.
+
+Register mcporter against the installed `coeus-mcp` executable on `PATH`, not a checkout file path:
 
 ```bash
-# Index a project
-coeus ingest /path/to/project --recursive
-
-# Ask a question
-coeus ask "how does authentication work?"
-
-# Raw search (debugging)
-coeus search "JWT validation" --method hybrid
-
-# Check what's indexed
-coeus stats
-
-# Watch for file changes and auto-index
-coeus watch /path/to/project
-
-# Show current config
-coeus config
+npx mcporter config add coeus --command coeus-mcp --arg --transport --arg stdio
 ```
 
-## MCP Tools (via Claude Code / Cursor)
-
-Once set up, your AI tool uses these automatically through the `coeus` skill:
-
-| Tool | Purpose |
-|------|---------|
-| `coeus_query` | Main search — returns assembled context within token budget |
-| `coeus_search` | Raw results with relevance scores |
-| `coeus_ingest` | Index a path from within the AI tool |
-| `coeus_decisions` | List active architectural decisions |
-| `coeus_stats` | Database statistics |
-| `coeus_ping` | Health check |
-
-## Configuration
-
-All settings via environment variables or `~/.coeus/.env`:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VOYAGE_API_KEY` | — | Voyage AI embeddings |
-| `OPENROUTER_API_KEY` | — | OpenRouter fallback |
-| `COEUS_DATA` | `~/.coeus` | Data directory |
-| `COEUS_EMBED_MODEL` | `voyage-3` | Embedding model |
-| `COEUS_CHUNK_SIZE` | `1000` | Chunk size in characters |
-
-## AST-Aware Chunking (optional)
-
-Install tree-sitter for function/class boundary chunking instead of line-count splitting:
+If you want to verify the registration before making calls, this should succeed:
 
 ```bash
-uv tool install --with "coeus[ast]" git+https://github.com/spideynolove/coeus
+npx mcporter list coeus --schema
 ```
 
-Supported: Python, Go, JavaScript, TypeScript, Rust.
+## Development
 
-## Architecture
-
+```bash
+source /home/hung/env/.venv/bin/activate
+uv pip install -e .
+python -m pytest tests/ -q
 ```
-coeus ingest  →  chunk (AST/line)  →  embed  →  SQLite + zvec HNSW
-coeus_query   →  FastPath cache  →  hybrid search  →  Contextualizer  →  Budgeter  →  pointers
-```
-
-- **FastPath** — exact/prefix cache, skips embedding API call for short queries
-- **Contextualizer** — expands matched chunks with ±3 surrounding lines from source
-- **Budgeter** — assembles context within token budget, max 3 chunks per file
 
 ## License
 
